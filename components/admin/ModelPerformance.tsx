@@ -367,7 +367,8 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                           <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.detectionDelay.toFixed(1)}</td>
                           <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.falseAlarmRate.toFixed(1)}%</td>
                        </tr>
-                       {Object.entries(baselineModels).map(([name, metrics]) => (
+                       {/* FIX: Explicitly type the `metrics` parameter to resolve property access errors. */}
+                       {Object.entries(baselineModels).map(([name, metrics]: [string, BaselineMetrics]) => (
                           <tr key={name}>
                               <td className="p-3 text-gray-700 dark:text-gray-300">{name}</td>
                               <td className="p-3 text-center text-gray-700 dark:text-gray-300">{metrics.auc.toFixed(3)}</td>
@@ -478,7 +479,7 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                             <td className="p-2 text-gray-700 dark:text-gray-300">{summary}</td>
                             <td className="p-2 text-right text-gray-700 dark:text-gray-300">{count}</td>
                             {/* FIX: Ensure the expression evaluates to a string to avoid being parsed as a modulo operation. */}
-                            <td className="p-2 text-right text-gray-700 dark:text-gray-300">{(allAttempts.length > 0 ? ((count / allAttempts.length) * 100).toFixed(1) : '0.0')}%</td>
+                            <td className="p-2 text-right text-gray-700 dark:text-gray-300">{`${(allAttempts.length > 0 ? ((count / allAttempts.length) * 100).toFixed(1) : '0.0')}%`}</td>
                         </tr>
                     ))}
                 </tbody>
