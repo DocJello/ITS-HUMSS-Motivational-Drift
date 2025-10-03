@@ -31,7 +31,8 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ topics }) => {
         <div className="space-y-6">
             <PageTitle title="Question Bank" subtitle="Browse all available questions, grouped by topic." />
             <div className="space-y-8">
-                {Object.entries(groupedQuestions).map(([topicTitle, questions]) => (
+                {/* FIX: Explicitly type `questions` to resolve property access error. */}
+                {Object.entries(groupedQuestions).map(([topicTitle, questions]: [string, QuestionWithDetails[]]) => (
                     <div key={topicTitle} className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
                          <h3 className="px-6 py-4 text-xl font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700">{topicTitle}</h3>
                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
