@@ -129,6 +129,14 @@ const AssessmentPlayer: React.FC<AssessmentPlayerProps> = ({ user, assessmentId,
             setHintError('');
             setAiHint('');
 
+            if (!process.env.API_KEY) {
+                console.warn("Gemini API key is not configured. Falling back to static hint.");
+                setHintError("AI-powered hints are currently unavailable.");
+                setAiHint(task.hint);
+                setIsHintLoading(false);
+                return;
+            }
+
             try {
                 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 const prompt = `You are an expert tutor for a student learning about speech acts in communication. The student is presented with a scenario and asked to identify the type of speech act. The student has requested a hint for the following question.
