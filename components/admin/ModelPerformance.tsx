@@ -86,7 +86,7 @@ const TransitionMatrixTable: React.FC<{ matrix: { [key in MotivationLevel]: { [k
                                 <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">{fromLabel.split(' ')[0]}</td>
                                 {labels.map(toLabel => (
                                     <td key={toLabel} className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
-                                        {(matrix[fromLabel][toLabel] * 100).toFixed(1)}%
+                                        {`${(matrix[fromLabel][toLabel] * 100).toFixed(1)}%`}
                                     </td>
                                 ))}
                             </tr>
@@ -362,10 +362,10 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                           <td className="p-3 text-gray-900 dark:text-white">HMM (This Study)</td>
                           <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.auc.toFixed(3)}</td>
                           <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.f1.toFixed(3)}</td>
-                          <td className="p-3 text-center text-gray-900 dark:text-white">{(evaluationMetrics.accuracy * 100).toFixed(1)}%</td>
+                          <td className="p-3 text-center text-gray-900 dark:text-white">{`${(evaluationMetrics.accuracy * 100).toFixed(1)}%`}</td>
                           <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.brierScore.toFixed(3)}</td>
                           <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.detectionDelay.toFixed(1)}</td>
-                          <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.falseAlarmRate.toFixed(1)}%</td>
+                          <td className="p-3 text-center text-gray-900 dark:text-white">{`${evaluationMetrics.falseAlarmRate.toFixed(1)}%`}</td>
                        </tr>
                        {/* FIX: Explicitly type the `metrics` parameter to resolve property access errors. */}
                        {Object.entries(baselineModels).map(([name, metrics]: [string, BaselineMetrics]) => (
@@ -373,10 +373,10 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                               <td className="p-3 text-gray-700 dark:text-gray-300">{name}</td>
                               <td className="p-3 text-center text-gray-700 dark:text-gray-300">{metrics.auc.toFixed(3)}</td>
                               <td className="p-3 text-center text-gray-700 dark:text-gray-300">{metrics.f1.toFixed(3)}</td>
-                              <td className="p-3 text-center text-gray-700 dark:text-gray-300">{(metrics.accuracy * 100).toFixed(1)}%</td>
+                              <td className="p-3 text-center text-gray-700 dark:text-gray-300">{`${(metrics.accuracy * 100).toFixed(1)}%`}</td>
                               <td className="p-3 text-center text-gray-700 dark:text-gray-300">{metrics.brierScore.toFixed(3)}</td>
                               <td className="p-3 text-center text-gray-700 dark:text-gray-300">{metrics.detectionDelay ? metrics.detectionDelay.toFixed(1) : 'N/A'}</td>
-                              <td className="p-3 text-center text-gray-700 dark:text-gray-300">{metrics.falseAlarmRate.toFixed(1)}%</td>
+                              <td className="p-3 text-center text-gray-700 dark:text-gray-300">{`${metrics.falseAlarmRate.toFixed(1)}%`}</td>
                           </tr>
                        ))}
                     </tbody>
@@ -427,7 +427,7 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                  <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                      <div className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50"><span>Precision (Low):</span> <span className="font-semibold">{evaluationMetrics.precision.toFixed(2)}</span></div>
                      <div className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50"><span>Recall / Sensitivity (Low):</span> <span className="font-semibold">{evaluationMetrics.recall.toFixed(2)}</span></div>
-                     <div className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50"><span>False Alarm Rate:</span> <span className="font-semibold">{evaluationMetrics.falseAlarmRate.toFixed(1)}%</span></div>
+                     <div className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50"><span>False Alarm Rate:</span> <span className="font-semibold">{`${evaluationMetrics.falseAlarmRate.toFixed(1)}%`}</span></div>
                      <div className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/50"><span>Brier Score (Calibration):</span> <span className="font-semibold">{evaluationMetrics.brierScore.toFixed(3)}</span></div>
                  </div>
                  <div>
@@ -478,8 +478,8 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                         <tr key={summary}>
                             <td className="p-2 text-gray-700 dark:text-gray-300">{summary}</td>
                             <td className="p-2 text-right text-gray-700 dark:text-gray-300">{count}</td>
-                            {/* FIX: Ensure the expression evaluates to a string to avoid being parsed as a modulo operation. */}
-                            <td className="p-2 text-right text-gray-700 dark:text-gray-300">{`${(allAttempts.length > 0 ? ((count / allAttempts.length) * 100).toFixed(1) : '0.0')}%`}</td>
+                            {/* FIX: The expression was changed to string concatenation to avoid being parsed as a modulo operation. */}
+                            <td className="p-2 text-right text-gray-700 dark:text-gray-300">{(allAttempts.length > 0 ? ((count / allAttempts.length) * 100).toFixed(1) : '0.0') + '%'}</td>
                         </tr>
                     ))}
                 </tbody>
