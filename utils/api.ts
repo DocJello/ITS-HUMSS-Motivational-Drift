@@ -4,7 +4,7 @@ import { USERS, MOCK_ATTEMPTS, ASSESSMENTS, TOPICS } from '../constants';
 // --- IMPORTANT ---
 // To connect to your backend, replace `null` with the URL of your deployed Render service.
 // Example: 'https://your-backend-name.onrender.com'
-const API_BASE_URL = null; 
+const API_BASE_URL = https://its-humss-backend.onrender.com; 
 
 // --- LocalStorage Logic (used when API_BASE_URL is null) ---
 
