@@ -1,24 +1,13 @@
 {
-  "name": "motivation-drift-detection-its",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "its-backend",
+  "version": "1.0.0",
+  "main": "server.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "node server.js",
+    "install": "npm install"
   },
   "dependencies": {
-    "react-dom": "^19.1.1",
-    "react": "^19.1.1",
-    "recharts": "^3.1.2",
-    "nanoid": "^5.1.5",
-    "@google/genai": "^1.16.0"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
   }
 }
