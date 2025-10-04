@@ -1,70 +1,145 @@
+import { User, AssessmentAttempt, Assessment, Topic, Role } from '../types';
 import { USERS, MOCK_ATTEMPTS, ASSESSMENTS, TOPICS } from '../constants';
-import { User, AssessmentAttempt, Assessment, Topic } from '../types';
 
-const LS_USERS = 'allMotivationUsers';
-const LS_ATTEMPTS = 'allMotivationAttempts';
-const LS_ASSESSMENTS = 'allMotivationAssessments';
-const LS_TOPICS = 'allMotivationTopics';
+// --- IMPORTANT ---
+// To connect to your backend, replace `null` with the URL of your deployed Render service.
+// Example: 'https://your-backend-name.onrender.com'
+const API_BASE_URL = null; 
 
-const initializeData = () => {
-    if (!localStorage.getItem(LS_USERS)) {
-        localStorage.setItem(LS_USERS, JSON.stringify(USERS));
-    }
-    if (!localStorage.getItem(LS_ATTEMPTS)) {
-        localStorage.setItem(LS_ATTEMPTS, JSON.stringify(MOCK_ATTEMPTS));
-    }
-    if (!localStorage.getItem(LS_ASSESSMENTS)) {
-        localStorage.setItem(LS_ASSESSMENTS, JSON.stringify(ASSESSMENTS));
-    }
-    if (!localStorage.getItem(LS_TOPICS)) {
-        localStorage.setItem(LS_TOPICS, JSON.stringify(TOPICS));
+// --- LocalStorage Logic (used when API_BASE_URL is null) ---
+
+const getData = <T>(key: string, defaultValue: T): T => {
+    try {
+        const storedValue = localStorage.getItem(key);
+        if (storedValue) {
+            return JSON.parse(storedValue);
+        }
+        localStorage.setItem(key, JSON.stringify(defaultValue));
+        return defaultValue;
+    } catch (error) {
+        console.error(`Error reading from localStorage for key "${key}"`, error);
+        return defaultValue;
     }
 };
 
-initializeData();
+const setData = <T>(key: string, value: T): void => {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        console.error(`Error writing to localStorage for key "${key}"`, error);
+    }
+};
 
-// --- API Functions ---
+const USERS_KEY = 'its_users';
+const ATTEMPTS_KEY = 'its_attempts';
+const ASSESSMENTS_KEY = 'its_assessments';
+const TOPICS_KEY = 'its_topics';
+
+
+// --- API Logic (used when API_BASE_URL is set) ---
+async function handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`Network response was not ok: ${response.statusText}`);
+    }
+    return response.json();
+}
+
+// --- Unified API Functions ---
 
 // Users
 export const fetchUsers = (): Promise<User[]> => {
-    const users = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
-    return Promise.resolve(users);
+    if (!API_BASE_URL) {
+        return Promise.resolve(getData<User[]>(USERS_KEY, USERS));
+    }
+    return fetch(`${API_BASE_URL}/api/users`).then(handleResponse<User[]>);
 };
 
 export const updateUsers = (updatedUsers: User[]): Promise<void> => {
-    localStorage.setItem(LS_USERS, JSON.stringify(updatedUsers));
-    return Promise.resolve();
+    if (!API_BASE_URL) {
+        setData(USERS_KEY, updatedUsers);
+        return Promise.resolve();
+    }
+    return fetch(`${API_BASE_URL}/api/users`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUsers),
+    }).then(() => Promise.resolve());
 };
+
+export const deleteAllStudentData = (): Promise<void> => {
+    if (!API_BASE_URL) {
+        const currentUsers = getData<User[]>(USERS_KEY, USERS);
+        const nonStudentUsers = currentUsers.filter(user => user.role !== Role.Student);
+        setData(USERS_KEY, nonStudentUsers);
+        setData(ATTEMPTS_KEY, []);
+        return Promise.resolve();
+    }
+    return fetch(`${API_BASE_URL}/api/student-data`, {
+        method: 'DELETE',
+    }).then(() => Promise.resolve());
+};
+
 
 // Attempts
 export const fetchAttempts = (): Promise<AssessmentAttempt[]> => {
-    const attempts = JSON.parse(localStorage.getItem(LS_ATTEMPTS) || '[]');
-    return Promise.resolve(attempts);
+    if (!API_BASE_URL) {
+        return Promise.resolve(getData<AssessmentAttempt[]>(ATTEMPTS_KEY, MOCK_ATTEMPTS));
+    }
+    return fetch(`${API_BASE_URL}/api/attempts`).then(handleResponse<AssessmentAttempt[]>);
 };
 
-export const saveAttempts = (updatedAttempts: AssessmentAttempt[]): Promise<void> => {
-    localStorage.setItem(LS_ATTEMPTS, JSON.stringify(updatedAttempts));
-    return Promise.resolve();
+export const saveNewAttempt = (newAttempt: AssessmentAttempt): Promise<AssessmentAttempt> => {
+    if (!API_BASE_URL) {
+        const allAttempts = getData<AssessmentAttempt[]>(ATTEMPTS_KEY, MOCK_ATTEMPTS);
+        const updatedAttempts = [...allAttempts, newAttempt];
+        setData(ATTEMPTS_KEY, updatedAttempts);
+        return Promise.resolve(newAttempt);
+    }
+    return fetch(`${API_BASE_URL}/api/attempts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAttempt),
+    }).then(handleResponse<AssessmentAttempt>);
 };
 
 // Assessments
 export const fetchAssessments = (): Promise<Assessment[]> => {
-    const assessments = JSON.parse(localStorage.getItem(LS_ASSESSMENTS) || '[]');
-    return Promise.resolve(assessments);
+    if (!API_BASE_URL) {
+        return Promise.resolve(getData<Assessment[]>(ASSESSMENTS_KEY, ASSESSMENTS));
+    }
+    return fetch(`${API_BASE_URL}/api/assessments`).then(handleResponse<Assessment[]>);
 };
 
 export const updateAssessments = (updatedAssessments: Assessment[]): Promise<void> => {
-    localStorage.setItem(LS_ASSESSMENTS, JSON.stringify(updatedAssessments));
-    return Promise.resolve();
+    if (!API_BASE_URL) {
+        setData(ASSESSMENTS_KEY, updatedAssessments);
+        return Promise.resolve();
+    }
+    return fetch(`${API_BASE_URL}/api/assessments`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedAssessments),
+    }).then(() => Promise.resolve());
 };
 
 // Topics
 export const fetchTopics = (): Promise<Topic[]> => {
-    const topics = JSON.parse(localStorage.getItem(LS_TOPICS) || '[]');
-    return Promise.resolve(topics);
+    if (!API_BASE_URL) {
+        return Promise.resolve(getData<Topic[]>(TOPICS_KEY, TOPICS));
+    }
+    return fetch(`${API_BASE_URL}/api/topics`).then(handleResponse<Topic[]>);
 };
 
 export const updateTopics = (updatedTopics: Topic[]): Promise<void> => {
-    localStorage.setItem(LS_TOPICS, JSON.stringify(updatedTopics));
-    return Promise.resolve();
+    if (!API_BASE_URL) {
+        setData(TOPICS_KEY, updatedTopics);
+        return Promise.resolve();
+    }
+    return fetch(`${API_BASE_URL}/api/topics`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTopics),
+    }).then(() => Promise.resolve());
 };
