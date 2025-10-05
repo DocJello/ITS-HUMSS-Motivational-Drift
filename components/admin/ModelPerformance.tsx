@@ -474,11 +474,11 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                    {Object.entries(driftAnalysis).map(([summary, count]) => (
+                    {/* FIX: Explicitly type `count` to resolve arithmetic operation error. */}
+                    {Object.entries(driftAnalysis).map(([summary, count]: [string, number]) => (
                         <tr key={summary}>
                             <td className="p-2 text-gray-700 dark:text-gray-300">{summary}</td>
                             <td className="p-2 text-right text-gray-700 dark:text-gray-300">{count}</td>
-                            {/* FIX: Use template literal to ensure the expression is treated as a string. */}
                             <td className="p-2 text-right text-gray-700 dark:text-gray-300">{`${(allAttempts.length > 0 ? ((count / allAttempts.length) * 100).toFixed(1) : '0.0')}%`}</td>
                         </tr>
                     ))}

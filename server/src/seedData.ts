@@ -1,6 +1,6 @@
 // This file contains the initial data that will be seeded into the database.
 // It's a direct copy of the data previously in `constants.ts`.
-import { User, Role, Section, Topic, Question, SpeechAct, Assessment, AssessmentType, Difficulty } from '../../client/src/types';
+import { User, Role, Section, Topic, Question, SpeechAct, Assessment, AssessmentType, Difficulty } from '../../types';
 
 // --- SECTIONS ---
 export const SECTIONS: Section[] = [

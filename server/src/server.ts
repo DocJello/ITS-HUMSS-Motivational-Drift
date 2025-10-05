@@ -1,20 +1,13 @@
-import express from 'express';
+// FIX: Add explicit types from express to resolve overload errors.
+import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
-// FIX: Add url and fileURLToPath imports to define __dirname in ES modules.
-import { fileURLToPath } from 'url';
 import { initializeDatabase, query } from './db';
-import { User, Role } from '../../client/src/types';
+import { User, Role } from '../../types';
 
-const app = express();
+// FIX: Explicitly type app as Express to help TypeScript with type inference.
+const app: Express = express();
 const PORT = process.env.PORT || 10000;
-
-// FIX: Define __filename and __dirname for ES module scope.
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// In CommonJS modules (as configured in tsconfig.json), `__dirname` is a global variable
-// representing the directory name of the current module. No special setup is needed.
 
 app.use(cors());
 app.use(express.json());
@@ -22,7 +15,8 @@ app.use(express.json());
 // --- API ROUTES ---
 
 // USERS
-app.get('/api/users', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.get('/api/users', async (req: Request, res: Response) => {
     try {
         const { rows } = await query('SELECT id, username, role, name, section_id as "sectionId", section_ids as "sectionIds" FROM users');
         res.json(rows);
@@ -32,7 +26,8 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
-app.post('/api/users', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.post('/api/users', async (req: Request, res: Response) => {
     const users: User[] = req.body;
     try {
         await query('BEGIN');
@@ -51,7 +46,8 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
-app.post('/api/reset-student-data', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.post('/api/reset-student-data', async (req: Request, res: Response) => {
     try {
         await query('BEGIN');
         await query('DELETE FROM assessment_attempts');
@@ -66,7 +62,8 @@ app.post('/api/reset-student-data', async (req, res) => {
 });
 
 // TOPICS
-app.get('/api/topics', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.get('/api/topics', async (req: Request, res: Response) => {
     try {
         const { rows } = await query(`
             SELECT 
@@ -85,7 +82,8 @@ app.get('/api/topics', async (req, res) => {
     }
 });
 
-app.post('/api/topics', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.post('/api/topics', async (req: Request, res: Response) => {
     const topics = req.body;
     try {
         await query('BEGIN');
@@ -106,7 +104,8 @@ app.post('/api/topics', async (req, res) => {
 
 
 // QUESTIONS
-app.get('/api/questions', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.get('/api/questions', async (req: Request, res: Response) => {
     try {
         const { rows } = await query(`
             SELECT 
@@ -125,7 +124,8 @@ app.get('/api/questions', async (req, res) => {
 
 
 // ASSESSMENTS
-app.get('/api/assessments', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.get('/api/assessments', async (req: Request, res: Response) => {
     try {
         const { rows } = await query(`
             SELECT id, title, type, topic_id as "topicId", question_ids as "questionIds"
@@ -138,7 +138,8 @@ app.get('/api/assessments', async (req, res) => {
     }
 });
 
-app.post('/api/assessments', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.post('/api/assessments', async (req: Request, res: Response) => {
     const assessments = req.body;
     try {
         await query('BEGIN');
@@ -158,7 +159,8 @@ app.post('/api/assessments', async (req, res) => {
 });
 
 // ATTEMPTS
-app.get('/api/attempts', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.get('/api/attempts', async (req: Request, res: Response) => {
     try {
         const { rows } = await query(`
             SELECT 
@@ -180,7 +182,8 @@ app.get('/api/attempts', async (req, res) => {
     }
 });
 
-app.post('/api/attempts', async (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.post('/api/attempts', async (req: Request, res: Response) => {
     const attempt = req.body;
     try {
         await query('INSERT INTO assessment_attempts (id, student_id, assessment_id, start_time, end_time, answers, motivation_surveys, score) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
@@ -194,10 +197,11 @@ app.post('/api/attempts', async (req, res) => {
 });
 
 // --- SERVE FRONTEND ---
-const clientBuildPath = path.join(__dirname, '../../client/dist');
+const clientBuildPath = path.join(__dirname, '../../dist');
 app.use(express.static(clientBuildPath));
 
-app.get('*', (req, res) => {
+// FIX: Add explicit types for req and res to match Express handler signature.
+app.get('*', (req: Request, res: Response) => {
     res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 

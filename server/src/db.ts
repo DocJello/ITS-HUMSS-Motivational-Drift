@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import { USERS, SECTIONS, TOPICS, QUESTION_BANK, ASSESSMENTS } from './seedData';
-import { Role } from '../../client/src/types';
+import { Role } from '../../types';
 
 dotenv.config();
 
