@@ -90,6 +90,28 @@ const createTables = async () => {
     }
 };
 
+// Helper function to build multi-row insert queries
+const buildMultiRowInsert = <T extends object>(table: string, columns: (keyof T)[], data: T[]) => {
+    // FIX: Automatically convert camelCase property names to snake_case for PostgreSQL column names.
+    const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    const columnNames = columns.map(col => toSnakeCase(String(col))).join(', ');
+    
+    const values: any[] = [];
+    let paramCounter = 1;
+    const valuePlaceholders = data.map(row => {
+        const rowPlaceholders = columns.map(col => {
+            const value = row[col];
+            // Ensure undefined values are converted to null for SQL compatibility.
+            values.push(value === undefined ? null : value);
+            return `$${paramCounter++}`;
+        });
+        return `(${rowPlaceholders.join(', ')})`;
+    }).join(', ');
+
+    const queryText = `INSERT INTO ${table} (${columnNames}) VALUES ${valuePlaceholders}`;
+    return { queryText, values };
+}
+
 const seedDatabase = async () => {
     const { rows } = await query('SELECT COUNT(*) FROM users');
     if (parseInt(rows[0].count, 10) > 0) {
@@ -97,38 +119,41 @@ const seedDatabase = async () => {
         return;
     }
 
-    console.log('Seeding database...');
+    console.log('Seeding database with efficient multi-row inserts...');
     try {
-        // SECTIONS
-        for (const section of SECTIONS) {
-            await query('INSERT INTO sections (id, name) VALUES ($1, $2)', [section.id, section.name]);
-        }
-        // USERS
-        for (const user of USERS) {
-            await query('INSERT INTO users (id, username, role, name, section_id, section_ids) VALUES ($1, $2, $3, $4, $5, $6)', 
-                [user.id, user.username, user.role, user.name, user.sectionId, user.sectionIds]
-            );
-        }
-        // TOPICS
-        for (const topic of TOPICS) {
-            await query('INSERT INTO topics (id, title, learning_materials, external_links, is_published, formative_assessment_id, summative_assessment_id) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-                [topic.id, topic.title, topic.learningMaterials, JSON.stringify(topic.externalLinks), topic.isPublished, topic.formativeAssessmentId, topic.summativeAssessmentId]
-            );
-        }
-        // QUESTIONS
-        for (const q of QUESTION_BANK) {
-             await query('INSERT INTO questions (id, scenario, question_text, options, correct_answer, hint, topic_id, difficulty, rationale, creator_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-                [q.id, q.scenario, q.questionText, q.options, q.correctAnswer, q.hint, q.topicId, q.difficulty, q.rationale, q.creatorId]
-            );
-        }
-        // ASSESSMENTS
-        for (const assessment of ASSESSMENTS) {
-            await query('INSERT INTO assessments (id, title, type, topic_id, question_ids) VALUES ($1, $2, $3, $4, $5)',
-                [assessment.id, assessment.title, assessment.type, assessment.topicId, assessment.questionIds]
-            );
-        }
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
 
-        console.log('Database seeded successfully.');
+            // SECTIONS
+            const sectionsQuery = buildMultiRowInsert('sections', ['id', 'name'], SECTIONS);
+            await client.query(sectionsQuery.queryText, sectionsQuery.values);
+
+            // USERS
+            const usersQuery = buildMultiRowInsert('users', ['id', 'username', 'role', 'name', 'sectionId', 'sectionIds'], USERS);
+            await client.query(usersQuery.queryText, usersQuery.values);
+            
+            // TOPICS
+            const topicValues = TOPICS.map(t => ({...t, externalLinks: JSON.stringify(t.externalLinks)}));
+            const topicsQuery = buildMultiRowInsert('topics', ['id', 'title', 'learningMaterials', 'externalLinks', 'isPublished', 'formativeAssessmentId', 'summativeAssessmentId'], topicValues);
+            await client.query(topicsQuery.queryText, topicsQuery.values);
+
+            // QUESTIONS
+            const questionsQuery = buildMultiRowInsert('questions', ['id', 'scenario', 'questionText', 'options', 'correctAnswer', 'hint', 'topicId', 'difficulty', 'rationale', 'creatorId'], QUESTION_BANK);
+            await client.query(questionsQuery.queryText, questionsQuery.values);
+
+            // ASSESSMENTS
+            const assessmentsQuery = buildMultiRowInsert('assessments', ['id', 'title', 'type', 'topicId', 'questionIds'], ASSESSMENTS);
+            await client.query(assessmentsQuery.queryText, assessmentsQuery.values);
+
+            await client.query('COMMIT');
+            console.log('Database seeded successfully.');
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
     } catch (err) {
         console.error('Error seeding database:', err);
         throw err;
@@ -141,7 +166,7 @@ export const initializeDatabase = async () => {
         await seedDatabase();
     } catch (err) {
         console.error('Failed to initialize database:', err);
-        // FIX: Cast process to any to avoid type error on 'exit'.
+        // Cast process to any to avoid type error on 'exit'.
         (process as any).exit(1);
     }
 };

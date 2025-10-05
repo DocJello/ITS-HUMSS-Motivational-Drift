@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, AssessmentAttempt, Section, Assessment, Topic, Question } from '../../types';
+import { User, AssessmentAttempt, Assessment, Topic, Question } from '../../types';
 import Sidebar from '../shared/Sidebar';
 import QuestionBank from './QuestionBank';
 import AssessmentManagement from './AssessmentManagement';

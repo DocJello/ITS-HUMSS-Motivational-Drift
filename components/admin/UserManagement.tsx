@@ -67,7 +67,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, o
     };
     
     const handleTeacherSectionsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        // FIX: Explicitly type `option` as HTMLOptionElement to resolve type error.
         const selectedIds = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
         setFormData({ ...formData, sectionIds: selectedIds });
     };

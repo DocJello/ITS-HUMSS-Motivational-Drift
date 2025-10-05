@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Role, AssessmentAttempt, Assessment, Topic, Question } from './types';
 import * as api from './utils/api';
 import LoginPage from './LoginPage';

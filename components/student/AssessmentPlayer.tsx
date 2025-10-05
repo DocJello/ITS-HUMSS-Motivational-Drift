@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Question, SpeechAct, User, AnswerLog, MotivationLevel, AssessmentAttempt, AssessmentType, Assessment } from '../../types';
 import { Button } from '../shared/Button';
 import { nanoid } from 'nanoid';
-import { GoogleGenAI } from '@google/genai';
 
 interface AssessmentPlayerProps {
     user: User;
@@ -47,10 +46,6 @@ const AssessmentPlayer: React.FC<AssessmentPlayerProps> = ({ user, assessmentId,
         answers: [], motivationSurveys: [],
     });
     const [showSurvey, setShowSurvey] = useState(false);
-
-    const [aiHint, setAiHint] = useState('');
-    const [isHintLoading, setIsHintLoading] = useState(false);
-    const [hintError, setHintError] = useState('');
     
     const assessment = assessments.find(a => a.id === assessmentId);
     const task = questions[currentIndex];
@@ -60,9 +55,6 @@ const AssessmentPlayer: React.FC<AssessmentPlayerProps> = ({ user, assessmentId,
         setSelected(null);
         setShowHint(false);
         setHintsRequested(0);
-        setAiHint('');
-        setHintError('');
-        setIsHintLoading(false);
     }, [currentIndex]);
     
     const advance = async (updatedAttempt: AssessmentAttempt) => {
@@ -121,50 +113,12 @@ const AssessmentPlayer: React.FC<AssessmentPlayerProps> = ({ user, assessmentId,
         }
     };
     
-    const handleHint = useCallback(async () => {
-        if (!showHint && task) {
+    const handleHint = useCallback(() => {
+        if (!showHint) {
             setHintsRequested(prev => prev + 1);
             setShowHint(true);
-            setIsHintLoading(true);
-            setHintError('');
-            setAiHint('');
-
-            if (!process.env.API_KEY) {
-                console.warn("Gemini API key is not configured. Falling back to static hint.");
-                setHintError("AI-powered hints are currently unavailable.");
-                setAiHint(task.hint);
-                setIsHintLoading(false);
-                return;
-            }
-
-            try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                const prompt = `You are an expert tutor for a student learning about speech acts in communication. The student is presented with a scenario and asked to identify the type of speech act. The student has requested a hint for the following question.
-
-                Scenario: "${task.scenario}"
-                Question: "${task.questionText}"
-                Options: ${task.options.join(', ')}.
-
-                Your goal is to provide a single, Socratic-style question as a hint that guides the student towards the correct answer (${task.correctAnswer}) without giving it away directly. The hint should encourage them to think critically about the speaker's intention in the scenario. Keep the hint concise and conversational.`;
-
-                // FIX: Use the correct model name and API call format.
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                });
-
-                // FIX: Access the response text correctly.
-                setAiHint(response.text);
-
-            } catch (err) {
-                console.error("Error fetching hint:", err);
-                setHintError("Sorry, I couldn't generate a hint right now. Here is a standard one:");
-                setAiHint(task.hint); // Fallback to static hint on error
-            } finally {
-                setIsHintLoading(false);
-            }
         }
-    }, [showHint, task]);
+    }, [showHint]);
 
     if (showSurvey) {
         return <MotivationSurvey onSubmit={handleSurveySubmit} />;
@@ -198,9 +152,7 @@ const AssessmentPlayer: React.FC<AssessmentPlayerProps> = ({ user, assessmentId,
             {showHint && (
                  <div className="bg-yellow-100 dark:bg-yellow-900/50 border-l-4 border-yellow-500 text-yellow-800 dark:text-yellow-200 p-4 rounded-r-lg mb-6" role="alert">
                     <p className="font-bold">Hint</p>
-                    {isHintLoading && <p>Thinking of a good hint...</p>}
-                    {hintError && <p className="text-red-600">{hintError}</p>}
-                    {aiHint && <p>{aiHint}</p>}
+                    <p>{task.hint}</p>
                 </div>
             )}
             <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{task.questionText}</p>

@@ -1,4 +1,4 @@
-import { User, AssessmentAttempt, Assessment, Topic, Role, Question } from '../types';
+import { User, AssessmentAttempt, Assessment, Topic, Question } from '../types';
 
 // NOTE: This file is completely rewritten to fetch data from the backend API.
 // The base URL will be relative, so it works in production when the client is served by the server.

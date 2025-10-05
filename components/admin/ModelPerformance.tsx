@@ -9,7 +9,6 @@ interface ModelPerformanceProps {
   allAttempts: AssessmentAttempt[];
 }
 
-// FIX: Define an interface for baseline model metrics to ensure correct type inference.
 interface BaselineMetrics {
     auc: number;
     f1: number;
@@ -168,7 +167,7 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
     for (let i = 0; i < inferredNumeric.length; i++) {
         numerator += (inferredNumeric[i] - meanX) * (groundTruthNumeric[i] - meanY);
         denomX += (inferredNumeric[i] - meanX) ** 2;
-        denomY += (inferredNumeric[i] - meanY) ** 2;
+        denomY += (groundTruthNumeric[i] - meanY) ** 2;
     }
     const correlation = Math.sqrt(denomX * denomY) === 0 ? 0 : numerator / Math.sqrt(denomX * denomY);
 
@@ -367,7 +366,6 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                           <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.detectionDelay.toFixed(1)}</td>
                           <td className="p-3 text-center text-gray-900 dark:text-white">{evaluationMetrics.falseAlarmRate.toFixed(1)}%</td>
                        </tr>
-                       {/* FIX: Explicitly type the `metrics` parameter to resolve property access errors. */}
                        {Object.entries(baselineModels).map(([name, metrics]: [string, BaselineMetrics]) => (
                           <tr key={name}>
                               <td className="p-3 text-gray-700 dark:text-gray-300">{name}</td>
@@ -447,7 +445,7 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                                 <YAxis type="category" dataKey="name" width={80} />
                                 <Tooltip formatter={(value: number) => value.toFixed(3)} />
                                 <Bar dataKey="value" fill="#8884d8" barSize={25}>
-                                    <LabelList dataKey="value" position="right" formatter={(value: number) => value.toFixed(3)} style={{ fill: 'white' }}/>
+                                    <LabelList dataKey="value" position="right" formatter={(value: any) => typeof value === 'number' ? value.toFixed(3) : value} style={{ fill: 'white' }}/>
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
@@ -474,7 +472,6 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                    {/* FIX: Explicitly type `count` to resolve arithmetic operation error. */}
                     {Object.entries(driftAnalysis).map(([summary, count]: [string, number]) => (
                         <tr key={summary}>
                             <td className="p-2 text-gray-700 dark:text-gray-300">{summary}</td>
@@ -514,7 +511,7 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                                 <YAxis type="category" dataKey="name" width={90} />
                                 <Tooltip formatter={(value: number) => value.toFixed(2)} />
                                 <Bar dataKey="importance" fill="#8884d8" barSize={20}>
-                                   <LabelList dataKey="importance" position="right" formatter={(value: number) => value.toFixed(2)} style={{ fill: 'white' }} />
+                                   <LabelList dataKey="importance" position="right" formatter={(value: any) => typeof value === 'number' ? value.toFixed(2) : value} style={{ fill: 'white' }} />
                                 </Bar>
                            </BarChart>
                        </ResponsiveContainer>
