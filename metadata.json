@@ -1,0 +1,5 @@
+{
+  "name": "Motivation Drift Detection ITS",
+  "description": "A web-based Intelligent Tutoring System (ITS) module to collect data for a research study on detecting motivation drift in students using a Hidden Markov Model. The app presents speech act identification tasks and logs student interactions.",
+  "requestFramePermissions": []
+}
