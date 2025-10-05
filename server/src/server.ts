@@ -1,16 +1,20 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+// FIX: Add url and fileURLToPath imports to define __dirname in ES modules.
+import { fileURLToPath } from 'url';
 import { initializeDatabase, query } from './db';
 import { User, Role } from '../../client/src/types';
-import { fileURLToPath } from 'url';
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// FIX: Define __dirname in ES module scope
+// FIX: Define __filename and __dirname for ES module scope.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// In CommonJS modules (as configured in tsconfig.json), `__dirname` is a global variable
+// representing the directory name of the current module. No special setup is needed.
 
 app.use(cors());
 app.use(express.json());
@@ -190,7 +194,7 @@ app.post('/api/attempts', async (req, res) => {
 });
 
 // --- SERVE FRONTEND ---
-const clientBuildPath = path.join(__dirname, '../../../client/dist');
+const clientBuildPath = path.join(__dirname, '../../client/dist');
 app.use(express.static(clientBuildPath));
 
 app.get('*', (req, res) => {
