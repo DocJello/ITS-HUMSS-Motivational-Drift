@@ -134,8 +134,7 @@ const seedDatabase = async () => {
             await client.query(usersQuery.queryText, usersQuery.values);
             
             // TOPICS
-            const topicValues = TOPICS.map(t => ({...t, externalLinks: JSON.stringify(t.externalLinks)}));
-            const topicsQuery = buildMultiRowInsert('topics', ['id', 'title', 'learningMaterials', 'externalLinks', 'isPublished', 'formativeAssessmentId', 'summativeAssessmentId'], topicValues);
+            const topicsQuery = buildMultiRowInsert('topics', ['id', 'title', 'learningMaterials', 'externalLinks', 'isPublished', 'formativeAssessmentId', 'summativeAssessmentId'], TOPICS);
             await client.query(topicsQuery.queryText, topicsQuery.values);
 
             // QUESTIONS

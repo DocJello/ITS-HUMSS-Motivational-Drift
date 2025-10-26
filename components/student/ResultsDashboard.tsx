@@ -158,7 +158,7 @@ const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ studentAttempts, as
                             <Radar name="Score" dataKey="score" stroke="#22c55e" fill="#22c55e" fillOpacity={0.6} />
                         </RadarChart>
                     </ResponsiveContainer>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-4 text-center">
+                    <p className="text-base text-gray-800 dark:text-gray-200 mt-4 text-center">
                         This radar chart provides a visual summary of your mastery across different topics. Each point on the chart represents your score on a summative test for a specific subject area. A larger, more balanced shape indicates strong and consistent performance across the board.
                     </p>
                 </div>
@@ -218,7 +218,7 @@ const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ studentAttempts, as
                                     {!isCorrect && (
                                         <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700/50 rounded-md border border-gray-200 dark:border-gray-600">
                                             <p className="text-sm">Correct answer: <span className="font-semibold">{question.correctAnswer}</span></p>
-                                            <p className="text-sm mt-1 text-gray-600 dark:text-gray-300">
+                                            <p className="text-sm mt-1 text-gray-700 dark:text-gray-300">
                                                 <span className="font-semibold">Rationale:</span> {question.rationale}
                                             </p>
                                         </div>
@@ -234,7 +234,7 @@ const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ studentAttempts, as
             {recommendations && (
                 <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                     <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">{recommendations.title}</h2>
-                    <ul className="list-disc list-inside space-y-3 text-gray-600 dark:text-gray-300">
+                    <ul className="list-disc list-inside space-y-3 text-gray-800 dark:text-gray-200">
                         {recommendations.points.map((point, index) => (
                             <li key={index}>{point}</li>
                         ))}

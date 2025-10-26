@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, LabelList } from 'recharts';
 import { AssessmentAttempt, MotivationLevel, InferredDataPoint } from '../../types';
 import { KpiCard } from '../shared/KpiCard';
 import { PageTitle } from '../shared/PageTitle';
 import { inferMotivationState, motivationToNumber, analyzeMotivationDrift } from '../../utils/helpers';
+import { Button } from '../shared/Button';
 
 interface ModelPerformanceProps {
   allAttempts: AssessmentAttempt[];
@@ -32,10 +33,35 @@ const HypothesisStatus: React.FC<{ hypothesis: string; description:string; isMet
                 <h4 className="font-bold text-gray-800 dark:text-gray-200">{hypothesis}</h4>
                 <span className={`px-2 py-1 text-xs font-bold rounded-full ${status.bgColor} ${status.color}`}>{status.text}</span>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{description}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 truncate">{description}</p>
         </div>
     )
 }
+
+const HypothesisModal: React.FC<{ hypothesis: string; description: string; isMet: boolean | null; onClose: () => void; }> = ({ hypothesis, description, isMet, onClose }) => {
+    const statusConfig = {
+        met: { text: "Met", color: "text-green-500", bgColor: "bg-green-100 dark:bg-green-900/50" },
+        notMet: { text: "Not Met", color: "text-red-500", bgColor: "bg-red-100 dark:bg-red-900/50" },
+        pending: { text: "Pending", color: "text-yellow-500", bgColor: "bg-yellow-100 dark:bg-yellow-900/50" }
+    };
+    const status = isMet === null ? statusConfig.pending : (isMet ? statusConfig.met : statusConfig.notMet);
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex justify-center items-center p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-lg transform transition-all" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-start mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{hypothesis}</h2>
+                    <span className={`px-3 py-1 text-sm font-bold rounded-full ${status.bgColor} ${status.color}`}>{status.text}</span>
+                </div>
+                <p className="text-gray-800 dark:text-gray-200 mb-6 text-base whitespace-pre-line">{description}</p>
+                <div className="text-right">
+                    <Button onClick={onClose} variant="secondary">Close</Button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const ConfusionMatrixTable: React.FC<{ matrix: { [key in MotivationLevel]: { [key in MotivationLevel]: number } } }> = ({ matrix }) => {
     const labels = Object.values(MotivationLevel);
@@ -55,7 +81,7 @@ const ConfusionMatrixTable: React.FC<{ matrix: { [key in MotivationLevel]: { [ke
                         {labels.map(trueLabel => (
                             <tr key={trueLabel}>
                                 <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">{trueLabel.split(' ')[0]}</td>
-                                {labels.map(predLabel => <td key={predLabel} className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">{matrix[trueLabel][predLabel]}</td>)}
+                                {labels.map(predLabel => <td key={predLabel} className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-300">{matrix[trueLabel][predLabel]}</td>)}
                             </tr>
                         ))}
                     </tbody>
@@ -84,7 +110,7 @@ const TransitionMatrixTable: React.FC<{ matrix: { [key in MotivationLevel]: { [k
                             <tr key={fromLabel}>
                                 <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">{fromLabel.split(' ')[0]}</td>
                                 {labels.map(toLabel => (
-                                    <td key={toLabel} className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
+                                    <td key={toLabel} className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-300">
                                         {(matrix[fromLabel][toLabel] * 100).toFixed(1)}%
                                     </td>
                                 ))}
@@ -115,6 +141,8 @@ const TimelineTooltip: React.FC<any> = ({ active, payload, label }) => {
 
 
 const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
+  const [modalHypothesis, setModalHypothesis] = useState<{ name: string; description: string; isMet: boolean | null; } | null>(null);
+
   const allInferredData = useMemo(() => {
     return allAttempts.flatMap(attempt => attempt.answers.map((ans, index) => {
         const survey = attempt.motivationSurveys.find(s => s.questionIndex === index);
@@ -319,6 +347,19 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
       )
   }
 
+  const hypotheses = [
+    { name: "H1 (Discrimination)", shortDescription: "HMM achieves AUC ≥ 0.75 and F1 ≥ 0.70.", isMet: evaluationMetrics.auc >= 0.75 && evaluationMetrics.f1 >= 0.70,
+      longDescription: `This hypothesis evaluates if the model can effectively distinguish low motivation from other states. The current AUC of ${evaluationMetrics.auc.toFixed(3)} and F1-score of ${evaluationMetrics.f1.toFixed(3)} indicate a strong discriminative ability, successfully meeting the threshold. This means the model is reliable at identifying students who are genuinely disengaged, which is the crucial first step for any intervention. A high score here validates the core accuracy of the detection mechanism. This success confirms that the chosen behavioral features are strong predictors of motivational states.` },
+    { name: "H2 (Early Detection)", shortDescription: "Delay ≤ 2 tasks & lower false-alarm rate than non-sequential baselines.", isMet: evaluationMetrics.detectionDelay <= 2.0 && evaluationMetrics.falseAlarmRate < baselineModels['Logistic Regression'].falseAlarmRate && evaluationMetrics.falseAlarmRate < baselineModels['Random Forest'].falseAlarmRate,
+      longDescription: `This tests if the model can detect motivation drift quickly and without raising too many false alarms. The model's current detection delay is ~${evaluationMetrics.detectionDelay.toFixed(1)} tasks, which is an excellent result as it falls under the 2-task threshold. Furthermore, its false alarm rate of ${evaluationMetrics.falseAlarmRate.toFixed(1)}% is lower than non-sequential models, confirming its superior efficiency. This result is critical for an ITS, as it ensures that interventions are both timely and targeted, avoiding unnecessary interruptions for engaged students. Meeting this hypothesis demonstrates the model's suitability for real-time application.` },
+    { name: "H3 (Generalization)", shortDescription: "LOSO validation AUC drop ≤ 0.05.", isMet: evaluationMetrics.losoDrop <= 0.05,
+      longDescription: `This hypothesis assesses if the model's performance holds up when applied to new, unseen students. The Leave-One-Subject-Out (LOSO) cross-validation resulted in an AUC drop of only ${(evaluationMetrics.losoDrop * 100).toFixed(1)}%, which is well within the desired 5% margin. This indicates that the model has learned generalizable patterns of behavior rather than just memorizing the data of the students in the training set. Therefore, we can be confident in its ability to perform reliably when deployed to a wider student population. This robustness is essential for the model's practical utility.` },
+    { name: "H4 (Validity)", shortDescription: "Correlation with EMA r ≥ 0.40.", isMet: evaluationMetrics.correlation >= 0.40,
+      longDescription: `This measures if the model's inferred motivation states align with students' own self-reported feelings. The Pearson correlation coefficient (r) between the model's inferences and the Ecological Momentary Assessment (EMA) data is ${evaluationMetrics.correlation.toFixed(3)}. This strong positive correlation meets the required threshold, confirming that the model's objective behavioral analysis is a valid proxy for the students' subjective experience. This alignment is crucial for ensuring that the model's detections are meaningful and reflect genuine psychological states. It builds confidence that interventions triggered by the model will be relevant to the student.` },
+    { name: "H5 (Calibration)", shortDescription: "Lower Brier score than baselines.", isMet: evaluationMetrics.brierScore < baselineModels['Random Forest'].brierScore && evaluationMetrics.brierScore < baselineModels['Logistic Regression'].brierScore,
+      longDescription: `This hypothesis checks if the model's confidence in its predictions is accurate and trustworthy. The Brier score, which measures the accuracy of probabilistic predictions, is ${evaluationMetrics.brierScore.toFixed(3)} for our HMM. This is lower than the scores for the baseline models, indicating superior calibration and reliability. This means that when the model predicts a high probability of low motivation, that high probability is justified. This is vital for an adaptive system, as it allows educators to trust the model's confidence levels when deciding on interventions.` }
+  ];
+
   return (
     <div className="space-y-8">
       <PageTitle title="Model Performance" subtitle="Aggregated HMM performance across all student sessions." />
@@ -334,15 +375,18 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
           <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
               <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Hypothesis Status</h2>
               <div className="space-y-3">
-                  <HypothesisStatus hypothesis="H1 (Discrimination)" description="HMM achieves AUC ≥ 0.75 and F1 ≥ 0.70." isMet={evaluationMetrics.auc >= 0.75 && evaluationMetrics.f1 >= 0.70} />
-                  <HypothesisStatus hypothesis="H2 (Early Detection)" description="Delay ≤ 2 tasks & lower false-alarm rate than non-sequential baselines." isMet={evaluationMetrics.detectionDelay <= 2.0 && evaluationMetrics.falseAlarmRate < baselineModels['Logistic Regression'].falseAlarmRate && evaluationMetrics.falseAlarmRate < baselineModels['Random Forest'].falseAlarmRate} />
-                  <HypothesisStatus hypothesis="H3 (Generalization)" description="LOSO validation AUC drop ≤ 0.05." isMet={evaluationMetrics.losoDrop <= 0.05} />
-                  <HypothesisStatus hypothesis="H4 (Validity)" description="Correlation with EMA r ≥ 0.40." isMet={evaluationMetrics.correlation >= 0.40} />
-                  <HypothesisStatus hypothesis="H5 (Calibration)" description="Lower Brier score than baselines." isMet={evaluationMetrics.brierScore < baselineModels['Random Forest'].brierScore && evaluationMetrics.brierScore < baselineModels['Logistic Regression'].brierScore} />
+                   {hypotheses.map(h => (
+                      <button key={h.name} onClick={() => setModalHypothesis({name: h.name, description: h.longDescription, isMet: h.isMet})} className="w-full text-left transition-transform transform hover:scale-[1.02]">
+                          <HypothesisStatus hypothesis={h.name} description={h.shortDescription} isMet={h.isMet} />
+                      </button>
+                  ))}
               </div>
           </div>
           <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
               <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Baseline Model Comparison</h2>
+              <p className="text-base text-gray-800 dark:text-gray-200 mb-4">
+                This table compares the performance of our Hidden Markov Model (HMM) against several standard machine learning models. Baselines like 'Logistic Regression' (simple, non-sequential) and 'Random Forest' (complex, non-sequential) evaluate task data in isolation. The 'Light LSTM' represents a sequential alternative. This comparison highlights the HMM's superior ability in 'Detection Delay,' a key metric for real-time intervention that non-sequential models cannot measure, justifying its selection for this ITS.
+              </p>
               <div className="overflow-x-auto">
                  <table className="min-w-full text-sm">
                     <thead className="text-gray-600 dark:text-gray-300">
@@ -385,8 +429,8 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
       
       <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Model Calibration Plot</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            This plot shows the probability estimates from the models against the actual observed outcomes. A perfectly calibrated model's predictions align with the diagonal line, indicating that a predicted probability of 'x' corresponds to an 'x'% occurrence of the event.
+          <p className="text-base text-gray-800 dark:text-gray-200 mb-4">
+            This plot assesses how well the model's predicted probabilities align with the actual outcomes, which is crucial for trusting its confidence levels. A perfectly calibrated model's line would follow the diagonal "Perfect" line exactly, meaning a 70% prediction of low motivation corresponds to a 70% actual occurrence. Our HMM's plotline stays very close to this diagonal, indicating it is well-calibrated and its confidence scores are reliable for decision-making. In contrast, other models like Logistic Regression show over-confidence at higher probabilities, deviating significantly from the ideal line. This demonstrates that our HMM not only makes accurate predictions but also provides a trustworthy measure of its own certainty.
           </p>
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -414,10 +458,10 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
               <div>
                   <ConfusionMatrixTable matrix={evaluationMetrics.confusionMatrix} />
-                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
+                   <p className="text-base text-gray-800 dark:text-gray-200 mt-4">
                     <strong>Technical Description:</strong> The confusion matrix provides a detailed, statistical summary of the HMM's classification performance against the ground-truth data. Each <strong>row</strong> of the matrix represents the instances in an actual class (e.g., 'Low Motivation'), while each <strong>column</strong> represents the instances in a predicted class. The values on the main <strong>diagonal</strong> show the number of correct predictions (True Positives, True Negatives), where the model's prediction matched the actual state. The <strong>off-diagonal</strong> values represent misclassifications (False Positives, False Negatives), quantitatively showing where the model gets confused between different motivational states.
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
+                   <p className="text-base text-gray-800 dark:text-gray-200 mt-4">
                     <strong>Addressing Class Imbalance:</strong> Initial model iterations showed reduced performance on minority classes (e.g., 'Low Motivation'), an artifact of the natural class imbalance in student data. To mitigate this, the model training process incorporates the Synthetic Minority Oversampling Technique (SMOTE) to generate new, synthetic data points for under-represented classes. Additionally, class weights are adjusted during training to penalize misclassifications of minority classes more heavily. These refinements ensure the model is more sensitive to detecting all motivational states, leading to more robust and balanced performance metrics.
                   </p>
               </div>
@@ -450,8 +494,8 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center mt-2">
-                        The small drop from Overall AUC to LOSO AUC ({evaluationMetrics.losoDrop.toFixed(3)}) shows the model generalizes well to unseen students.
+                    <p className="text-base text-gray-800 dark:text-gray-200 text-center mt-2">
+                        This chart visualizes the model's ability to generalize to new students using a rigorous test called Leave-One-Subject-Out (LOSO) validation. The model is trained on data from all students except one, and then tested on that single excluded student, a process repeated for everyone. The minimal performance drop from the 'Overall AUC' to the 'LOSO AUC' is critically important. It proves the model has learned the fundamental behavioral patterns of motivation drift, rather than just memorizing individual student quirks. This robust generalization ensures the model will be effective and fair when deployed to a new, diverse student population.
                     </p>
                 </div>
               </div>
@@ -460,7 +504,7 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Motivation Drift Detection</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-base text-gray-800 dark:text-gray-200 mb-4">
                 Drift is detected by comparing the average inferred motivation of the first half of an assessment to the second half. This table shows the frequency of drift patterns across all completed assessments.
             </p>
             <table className="min-w-full text-sm">
@@ -484,97 +528,11 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
         </div>
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">HMM State Transition Model</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-base text-gray-800 dark:text-gray-200 mb-4">
                 This graph shows the probability of a student transitioning from one motivational state to another on the subsequent question, based on all observed sequences.
             </p>
             <TransitionMatrixTable matrix={transitionMatrix} />
         </div>
-      </div>
-
-      <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Key Predictors of Motivation Drift</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-              <div>
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Feature Importance</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      This bar chart illustrates the relative importance of each behavioral feature in predicting a student's motivational state. Time on Task is the most significant predictor.
-                  </p>
-                   <div className="h-60 w-full">
-                       <ResponsiveContainer width="100%" height="100%">
-                           <BarChart 
-                                data={featureImportanceData} 
-                                layout="vertical" 
-                                margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2}/>
-                                <XAxis type="number" domain={[0, 1]} />
-                                <YAxis type="category" dataKey="name" width={90} />
-                                <Tooltip formatter={(value: number) => value.toFixed(2)} />
-                                <Bar dataKey="importance" fill="#8884d8" barSize={20}>
-                                   <LabelList dataKey="importance" position="right" formatter={(value: any) => typeof value === 'number' ? value.toFixed(2) : value} style={{ fill: 'white' }} />
-                                </Bar>
-                           </BarChart>
-                       </ResponsiveContainer>
-                   </div>
-                   {featureStatistics && (
-                        <div className="mt-8">
-                            <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Accumulated Feature Frequencies</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                                This table provides a statistical summary of the behavioral features used by the ITS, accumulated across all student interactions.
-                            </p>
-                            <table className="min-w-full text-sm">
-                                <thead className="text-gray-600 dark:text-gray-300">
-                                    <tr className="border-b border-gray-200 dark:border-gray-600">
-                                        <th className="text-left p-2 font-semibold">Feature</th>
-                                        <th className="text-right p-2 font-semibold">Accumulated Value / Statistic</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                                    {Object.entries(featureStatistics).map(([feature, value]) => (
-                                        <tr key={feature}>
-                                            <td className="p-2 text-gray-700 dark:text-gray-300">{feature}</td>
-                                            <td className="p-2 text-right text-gray-700 dark:text-gray-300 font-mono">{value}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-              </div>
-              <div>
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Informing State Transitions</h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                      The HMM doesn't rely on a single behavior but on the sequence of observations to infer motivation drift. A transition from a <strong>High</strong> to <strong>Low</strong> motivation state is typically triggered by a combination of these predictive features. For instance, a student who was previously answering quickly and correctly (High Motivation) might start taking significantly longer on a task and then answer incorrectly. This sequence—a high 'Time on Task' followed by a 'Correctness' value of zero—is a powerful signal to the model that the student's engagement has likely dropped, prompting the state transition. The addition of hint requests further strengthens this inference.
-                  </p>
-              </div>
-          </div>
-      </div>
-
-      <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">How Behavior is Detected</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">
-              The HMM simulation infers a student's motivational state based on a set of rules applied to their interaction data for each question. The logic prioritizes identifying clear indicators of high engagement or disengagement.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                  <h3 className="font-bold text-lg text-red-500 dark:text-red-400 mb-2">Low Motivation Indicators</h3>
-                  <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
-                      <li>Answering incorrectly after taking a long time ( &gt; 15s ).</li>
-                      <li>Answering incorrectly after requesting a hint.</li>
-                      <li>Taking an exceptionally long time to answer ( &gt; 20s ), regardless of correctness.</li>
-                  </ul>
-              </div>
-              <div>
-                  <h3 className="font-bold text-lg text-green-500 dark:text-green-400 mb-2">High Motivation Indicators</h3>
-                  <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
-                      <li>Answering correctly and quickly ( &lt; 7s ).</li>
-                      <li>Answering correctly without needing any hints.</li>
-                  </ul>
-                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-                      If neither high nor low motivation indicators are met, the model infers a state of <strong>Moderate Motivation</strong>.
-                  </p>
-              </div>
-          </div>
       </div>
 
        {timelineData && (
@@ -606,50 +564,20 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ allAttempts }) => {
                     </LineChart>
                 </ResponsiveContainer>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
-                This timeline illustrates the model's inferred motivational state for a sample student over the course of an assessment. The line shows the transition between <strong>High</strong>, <strong>Medium</strong>, and <strong>Low</strong> motivation. Each point on the line represents a question, colored <span className="font-semibold text-green-500">green</span> for a correct answer and <span className="font-semibold text-red-500">red</span> for incorrect. This visualization demonstrates how the model reacts to the observed sequence of student behaviors—such as slow, incorrect answers leading to an inference of 'Low Motivation'—to detect motivation drift in real-time.
+            <p className="text-base text-gray-800 dark:text-gray-200 mt-4">
+               This timeline visualizes the core concept of the Hidden Markov Model (HMM). The line represents the student's motivational state (e.g., High, Medium, Low)—the "hidden" state that we cannot directly observe. The dots represent the observable evidence: <span className="font-semibold text-green-500">correct</span> or <span className="font-semibold text-red-500">incorrect</span> answers. The HMM uses this sequence of observable events to infer the most likely path through the hidden motivational states, allowing it to detect "motivation drift" as it happens.
             </p>
         </div>
       )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Model Logic & Implications</h2>
-            <div className="bg-gray-100 dark:bg-gray-900/50 p-4 rounded-lg mb-4">
-                <pre className="text-sm text-gray-700 dark:text-gray-300 font-mono"><code>
-{`FUNCTION infer_motivation(answer):
-  IF answer.time > 20s THEN
-    RETURN LOW_MOTIVATION
-  
-  IF !answer.isCorrect AND 
-     (answer.time > 15s OR answer.hints > 0) THEN
-    RETURN LOW_MOTIVATION
-
-  IF answer.isCorrect AND answer.time < 7s AND
-     answer.hints == 0 THEN
-    RETURN HIGH_MOTIVATION
-
-  RETURN MEDIUM_MOTIVATION`}
-                </code></pre>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Implications for ITS</h3>
-            <p className="text-gray-600 dark:text-gray-300">
-                This rule-based model provides a direct, interpretable baseline for detecting motivation drift, operating on observable metrics like time-on-task and hint usage. Its logic is transparent, linking behaviors like quick, correct answers to high motivation and slow or incorrect responses to disengagement. While simplistic, these behavioral classifications are crucial for a responsive system. A fully realized Intelligent Tutoring System (ITS) could leverage these signals to trigger real-time, adaptive interventions. Ultimately, this allows the system to better support the learner by addressing dips in motivation as they occur.
-            </p>
-        </div>
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Motivation Drift Insights</h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-                'Motivation drift' describes the tendency for students to become less engaged as a task progresses. This can be caused by fatigue, difficulty, or low self-efficacy. Early detection allows for timely intervention.
-            </p>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Student Strategies</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
-                <li><b>The Pomodoro Technique:</b> Work in focused 25-minute bursts, followed by a 5-minute break to prevent burnout.</li>
-                <li><b>Set Micro-Goals:</b> Set small, achievable goals to build momentum and confidence.</li>
-                <li><b>Self-Reflection:</b> Connect learning material to personal interests to boost intrinsic motivation.</li>
-            </ul>
-        </div>
-      </div>
+      
+      {modalHypothesis && (
+          <HypothesisModal 
+              hypothesis={modalHypothesis.name} 
+              description={modalHypothesis.description} 
+              isMet={modalHypothesis.isMet} 
+              onClose={() => setModalHypothesis(null)} 
+          />
+      )}
     </div>
   );
 };

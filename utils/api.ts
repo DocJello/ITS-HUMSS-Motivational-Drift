@@ -1,84 +1,96 @@
-import { User, AssessmentAttempt, Assessment, Topic, Question } from '../types';
+import { User, AssessmentAttempt, Assessment, Topic, Question, Role, AuditLog } from '../types';
+import { USERS, MOCK_ATTEMPTS, ASSESSMENTS, TOPICS, QUESTION_BANK, MOCK_AUDIT_LOGS } from '../constants';
 
-// NOTE: This file is completely rewritten to fetch data from the backend API.
-// The base URL will be relative, so it works in production when the client is served by the server.
-const API_BASE = '/api'; 
+// To allow for mutation during the session, we'll work with copies of the mock data.
+let localUsers: User[] = JSON.parse(JSON.stringify(USERS));
+let localAttempts: AssessmentAttempt[] = JSON.parse(JSON.stringify(MOCK_ATTEMPTS));
+let localAssessments: Assessment[] = JSON.parse(JSON.stringify(ASSESSMENTS));
+let localTopics: Topic[] = JSON.parse(JSON.stringify(TOPICS));
+let localQuestions: Question[] = JSON.parse(JSON.stringify(QUESTION_BANK));
+let localAuditLogs: AuditLog[] = JSON.parse(JSON.stringify(MOCK_AUDIT_LOGS));
 
-const handleResponse = async <T>(response: Response): Promise<T> => {
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
-    }
-    return response.json();
-};
+const delay = (ms: number = 50) => new Promise(res => setTimeout(res, ms));
 
 // Users
-export const fetchUsers = (): Promise<User[]> => {
-    return fetch(`${API_BASE}/users`).then(handleResponse<User[]>);
+export const fetchUsers = async (): Promise<User[]> => {
+    await delay();
+    // Return a deep copy to prevent direct mutation of the "database"
+    return JSON.parse(JSON.stringify(localUsers));
 };
 
-export const updateUsers = (updatedUsers: User[]): Promise<void> => {
-    return fetch(`${API_BASE}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedUsers),
-    }).then(res => {
-        if (!res.ok) throw new Error('Failed to update users');
-    });
+export const updateUsers = async (updatedUsers: User[]): Promise<void> => {
+    await delay();
+    localUsers = updatedUsers;
 };
 
-export const deleteAllStudentData = (): Promise<void> => {
-    return fetch(`${API_BASE}/reset-student-data`, {
-        method: 'POST'
-    }).then(res => {
-        if (!res.ok) throw new Error('Failed to reset student data');
-    });
+export const deleteAllStudentData = async (): Promise<void> => {
+    await delay(100);
+    // Reset to initial state, but without students and their attempts
+    localUsers = JSON.parse(JSON.stringify(USERS.filter(u => u.role !== Role.Student)));
+    localAttempts = [];
+};
+
+export const restoreAllData = async (data: any): Promise<void> => {
+    await delay();
+    if (data.users && data.attempts && data.assessments && data.topics && data.questions) {
+        localUsers = data.users;
+        localAttempts = data.attempts;
+        localAssessments = data.assessments;
+        localTopics = data.topics;
+        localQuestions = data.questions;
+    } else {
+        throw new Error("Invalid backup file format.");
+    }
 };
 
 // Attempts
-export const fetchAttempts = (): Promise<AssessmentAttempt[]> => {
-    return fetch(`${API_BASE}/attempts`).then(handleResponse<AssessmentAttempt[]>);
+export const fetchAttempts = async (): Promise<AssessmentAttempt[]> => {
+    await delay();
+    return JSON.parse(JSON.stringify(localAttempts));
 };
 
-export const saveNewAttempt = (newAttempt: AssessmentAttempt): Promise<AssessmentAttempt> => {
-    return fetch(`${API_BASE}/attempts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAttempt),
-    }).then(handleResponse<AssessmentAttempt>);
+export const saveNewAttempt = async (newAttempt: AssessmentAttempt): Promise<AssessmentAttempt> => {
+    await delay();
+    localAttempts.push(newAttempt);
+    return JSON.parse(JSON.stringify(newAttempt));
 };
 
 // Questions
-export const fetchQuestions = (): Promise<Question[]> => {
-    return fetch(`${API_BASE}/questions`).then(handleResponse<Question[]>);
+export const fetchQuestions = async (): Promise<Question[]> => {
+    await delay();
+    return JSON.parse(JSON.stringify(localQuestions));
 };
 
 // Assessments
-export const fetchAssessments = (): Promise<Assessment[]> => {
-    return fetch(`${API_BASE}/assessments`).then(handleResponse<Assessment[]>);
+export const fetchAssessments = async (): Promise<Assessment[]> => {
+    await delay();
+    return JSON.parse(JSON.stringify(localAssessments));
 };
 
-export const updateAssessments = (updatedAssessments: Assessment[]): Promise<void> => {
-     return fetch(`${API_BASE}/assessments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedAssessments),
-    }).then(res => {
-        if (!res.ok) throw new Error('Failed to update assessments');
-    });
+export const updateAssessments = async (updatedAssessments: Assessment[]): Promise<void> => {
+     await delay();
+     localAssessments = updatedAssessments;
 };
 
 // Topics
-export const fetchTopics = (): Promise<Topic[]> => {
-    return fetch(`${API_BASE}/topics`).then(handleResponse<Topic[]>);
+export const fetchTopics = async (): Promise<Topic[]> => {
+    await delay();
+    return JSON.parse(JSON.stringify(localTopics));
 };
 
-export const updateTopics = (updatedTopics: Topic[]): Promise<void> => {
-    return fetch(`${API_BASE}/topics`, {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify(updatedTopics),
-   }).then(res => {
-       if (!res.ok) throw new Error('Failed to update topics');
-   });
+export const updateTopics = async (updatedTopics: Topic[]): Promise<void> => {
+    await delay();
+    localTopics = updatedTopics;
+};
+
+// Audit Logs
+export const fetchAuditLogs = async (): Promise<AuditLog[]> => {
+    await delay();
+    return JSON.parse(JSON.stringify(localAuditLogs));
+};
+
+export const addAuditLog = async (newLog: AuditLog): Promise<AuditLog[]> => {
+    await delay();
+    localAuditLogs.unshift(newLog); // Add to the beginning of the array
+    return JSON.parse(JSON.stringify(localAuditLogs));
 };

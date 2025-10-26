@@ -98,7 +98,7 @@ const SectionInsights: React.FC<SectionInsightsProps> = ({ allAttempts, teacherS
             
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Overall Section Motivation</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
                     A summary of inferred motivation levels based on all recent assessment data for each section.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -112,7 +112,7 @@ const SectionInsights: React.FC<SectionInsightsProps> = ({ allAttempts, teacherS
                                         <div className="bg-yellow-500" style={{ width: `${summary.motivation.Medium}%` }} title={`Medium Motivation: ${summary.motivation.Medium.toFixed(0)}%`}></div>
                                         <div className="bg-red-500" style={{ width: `${summary.motivation.Low}%` }} title={`Low Motivation: ${summary.motivation.Low.toFixed(0)}%`}></div>
                                     </div>
-                                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                                    <div className="flex justify-between text-xs text-gray-700 dark:text-gray-300">
                                         <span><span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>High: {summary.motivation.High.toFixed(0)}%</span>
                                         <span><span className="inline-block w-2 h-2 rounded-full bg-yellow-500 mr-1"></span>Med: {summary.motivation.Medium.toFixed(0)}%</span>
                                         <span><span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span>Low: {summary.motivation.Low.toFixed(0)}%</span>
@@ -165,11 +165,11 @@ const SectionInsights: React.FC<SectionInsightsProps> = ({ allAttempts, teacherS
 
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Implications & Strategies</h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-gray-800 dark:text-gray-200 mb-4">
                     A downward trend in the chart above can indicate 'motivation drift,' where students become less engaged as the assessment progresses. This can be caused by fatigue, difficulty, or a feeling of low self-efficacy. Early detection allows for timely intervention.
                 </p>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Strategies to Advise Students:</h3>
-                <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                <ul className="list-disc list-inside space-y-2 text-gray-800 dark:text-gray-200">
                     <li><b>The Pomodoro Technique:</b> Encourage focused work in short 25-minute bursts, followed by a 5-minute break. This can prevent burnout during study sessions.</li>
                     <li><b>Set Micro-Goals:</b> Instead of tackling a large topic, advise students to set small, achievable goals, like "mastering one type of speech act." This builds momentum and confidence.</li>
                     <li><b>Self-Reflection:</b> Prompt students to briefly think about why a topic is interesting or relevant to them before they begin. Connecting material to personal interests boosts intrinsic motivation.</li>

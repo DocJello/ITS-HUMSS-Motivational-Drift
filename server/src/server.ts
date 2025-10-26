@@ -1,13 +1,19 @@
 
 
-// FIX: Use named imports for Express types. The default import was causing type resolution issues.
-import express, { Express, Request, Response } from 'express';
+// The previous attempt to use named imports for express types was causing type
+// conflicts. This has been reverted to a default import, and all Request/Response
+// types are now fully qualified (e.g., `express.Request`) to ensure correctness.
+import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { initializeDatabase, query } from './db';
 import { User, Role } from '../../types';
+// FIX: `__dirname` is not available in ES modules. This is a workaround to get the directory name.
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const app: Express = express();
+const app: express.Express = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(cors());
@@ -16,7 +22,7 @@ app.use(express.json());
 // --- API ROUTES ---
 
 // USERS
-app.get('/api/users', async (req: Request, res: Response) => {
+app.get('/api/users', async (req: express.Request, res: express.Response) => {
     try {
         const { rows } = await query('SELECT id, username, role, name, section_id as "sectionId", section_ids as "sectionIds" FROM users');
         res.json(rows);
@@ -26,7 +32,7 @@ app.get('/api/users', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/users', async (req: Request, res: Response) => {
+app.post('/api/users', async (req: express.Request, res: express.Response) => {
     const users: User[] = req.body;
     try {
         await query('BEGIN');
@@ -45,7 +51,7 @@ app.post('/api/users', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/reset-student-data', async (req: Request, res: Response) => {
+app.post('/api/reset-student-data', async (req: express.Request, res: express.Response) => {
     try {
         await query('BEGIN');
         await query('DELETE FROM assessment_attempts');
@@ -60,7 +66,7 @@ app.post('/api/reset-student-data', async (req: Request, res: Response) => {
 });
 
 // TOPICS
-app.get('/api/topics', async (req: Request, res: Response) => {
+app.get('/api/topics', async (req: express.Request, res: express.Response) => {
     try {
         const { rows } = await query(`
             SELECT 
@@ -79,14 +85,14 @@ app.get('/api/topics', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/topics', async (req: Request, res: Response) => {
+app.post('/api/topics', async (req: express.Request, res: express.Response) => {
     const topics = req.body;
     try {
         await query('BEGIN');
         await query('DELETE FROM topics');
         for (const topic of topics) {
             await query('INSERT INTO topics (id, title, learning_materials, external_links, is_published, formative_assessment_id, summative_assessment_id) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-                [topic.id, topic.title, topic.learningMaterials, JSON.stringify(topic.externalLinks), topic.isPublished, topic.formativeAssessmentId, topic.summativeAssessmentId]
+                [topic.id, topic.title, topic.learningMaterials, topic.externalLinks, topic.isPublished, topic.formativeAssessmentId, topic.summativeAssessmentId]
             );
         }
         await query('COMMIT');
@@ -100,7 +106,7 @@ app.post('/api/topics', async (req: Request, res: Response) => {
 
 
 // QUESTIONS
-app.get('/api/questions', async (req: Request, res: Response) => {
+app.get('/api/questions', async (req: express.Request, res: express.Response) => {
     try {
         const { rows } = await query(`
             SELECT 
@@ -119,7 +125,7 @@ app.get('/api/questions', async (req: Request, res: Response) => {
 
 
 // ASSESSMENTS
-app.get('/api/assessments', async (req: Request, res: Response) => {
+app.get('/api/assessments', async (req: express.Request, res: express.Response) => {
     try {
         const { rows } = await query(`
             SELECT id, title, type, topic_id as "topicId", question_ids as "questionIds"
@@ -132,7 +138,7 @@ app.get('/api/assessments', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/assessments', async (req: Request, res: Response) => {
+app.post('/api/assessments', async (req: express.Request, res: express.Response) => {
     const assessments = req.body;
     try {
         await query('BEGIN');
@@ -152,7 +158,7 @@ app.post('/api/assessments', async (req: Request, res: Response) => {
 });
 
 // ATTEMPTS
-app.get('/api/attempts', async (req: Request, res: Response) => {
+app.get('/api/attempts', async (req: express.Request, res: express.Response) => {
     try {
         const { rows } = await query(`
             SELECT 
@@ -174,11 +180,11 @@ app.get('/api/attempts', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/attempts', async (req: Request, res: Response) => {
+app.post('/api/attempts', async (req: express.Request, res: express.Response) => {
     const attempt = req.body;
     try {
         await query('INSERT INTO assessment_attempts (id, student_id, assessment_id, start_time, end_time, answers, motivation_surveys, score) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-            [attempt.id, attempt.studentId, attempt.assessmentId, attempt.startTime, attempt.endTime, JSON.stringify(attempt.answers), JSON.stringify(attempt.motivationSurveys), attempt.score]
+            [attempt.id, attempt.studentId, attempt.assessmentId, attempt.startTime, attempt.endTime, attempt.answers, attempt.motivationSurveys, attempt.score]
         );
         res.status(201).json(attempt);
     } catch (err) {
@@ -191,7 +197,7 @@ app.post('/api/attempts', async (req: Request, res: Response) => {
 const clientBuildPath = path.join(__dirname, '../../dist');
 app.use(express.static(clientBuildPath));
 
-app.get('*', (req: Request, res: Response) => {
+app.get('*', (req: express.Request, res: express.Response) => {
     res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 

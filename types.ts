@@ -108,3 +108,12 @@ export interface InferredDataPoint {
   inferredState: MotivationLevel;
   groundTruth?: MotivationLevel;
 }
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  action: string;
+  details?: string;
+}

@@ -72,12 +72,12 @@ const Sections: React.FC<SectionsProps> = ({ allAttempts, teacherSections, asses
                                         <ul className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                                             {performance.map(perf => (
                                                  <li key={perf.assessmentId} className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
-                                                    <span className="font-semibold text-gray-700 dark:text-gray-300">{perf.assessmentTitle}:</span>
+                                                    <span className="font-semibold text-gray-800 dark:text-gray-200">{perf.assessmentTitle}:</span>
                                                     {perf.score !== undefined ? 
                                                         <span className={`ml-2 font-bold ${perf.score >= 80 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{perf.score}%</span> : 
-                                                        <span className="ml-2 text-gray-500 dark:text-gray-400">--</span>
+                                                        <span className="ml-2 text-gray-700 dark:text-gray-300">--</span>
                                                     }
-                                                    <span className="text-xs text-gray-400 dark:text-gray-500 float-right mt-1">{perf.completed}</span>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400 float-right mt-1">{perf.completed}</span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -85,7 +85,7 @@ const Sections: React.FC<SectionsProps> = ({ allAttempts, teacherSections, asses
                                     <div className="md:col-span-1 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                         <h5 className="text-sm font-bold text-gray-800 dark:text-gray-200">Motivation Analysis</h5>
                                         <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mt-1">{motivationAnalysis.summary}</p>
-                                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{motivationAnalysis.insight}</p>
+                                        <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">{motivationAnalysis.insight}</p>
                                     </div>
                                 </div>
                             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { SECTIONS } from '../../constants';
 import { PageTitle } from '../shared/PageTitle';
 import { Button } from '../shared/Button';
@@ -8,15 +8,15 @@ import { nanoid } from 'nanoid';
 interface UserManagementProps {
     users: User[];
     onUpdateUsers: (updatedUsers: User[]) => Promise<void>;
-    onResetStudentData: () => Promise<void>;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, onResetStudentData }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-    const [isResetting, setIsResetting] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState<Partial<User>>({});
+    const [bulkAddUsers, setBulkAddUsers] = useState<Partial<User>[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const getSectionDisplay = (user: User) => {
         if (user.role === Role.Student && user.sectionId) {
@@ -51,18 +51,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, o
         const { name, value } = e.target;
         const newFormData = { ...formData, [name]: value };
 
-        // When role changes, reset section info
         if(name === 'role') {
             delete newFormData.sectionId;
             delete newFormData.sectionIds;
-            if (value === Role.Student) {
-                newFormData.sectionId = SECTIONS[0]?.id;
-            }
-             if (value === Role.Teacher) {
-                newFormData.sectionIds = [];
-            }
+            if (value === Role.Student) newFormData.sectionId = SECTIONS[0]?.id;
+            if (value === Role.Teacher) newFormData.sectionIds = [];
         }
-
         setFormData(newFormData);
     };
     
@@ -90,18 +84,48 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, o
         await onUpdateUsers(updatedUsers);
         closeModal();
     };
+    
+    const handleBulkUploadClick = () => {
+        fileInputRef.current?.click();
+    };
 
-    const handleReset = async () => {
-        setIsResetting(true);
-        try {
-            await onResetStudentData();
-            setIsResetModalOpen(false);
-        } catch (error) {
-            console.error("Failed to reset student data", error);
-            // In a real app, you might show an error toast here.
-        } finally {
-            setIsResetting(false);
-        }
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // In a real application, you would use a library like 'xlsx' to parse the file.
+        // Here, we simulate the parsing result for demonstration purposes.
+        console.log("Simulating parsing of file:", file.name);
+        const mockParsedUsers = [
+            { name: 'Maria Clara', username: 'mclara', sectionName: 'Grade 11 - HUMSS A' },
+            { name: 'Juan Crisostomo', username: 'jcibarra', sectionName: 'Grade 11 - HUMSS A' },
+            { name: 'Elias Salvador', username: 'esalvador', sectionName: 'Grade 11 - HUMSS B' },
+        ];
+        
+        const newUsers = mockParsedUsers.map(u => {
+            const section = SECTIONS.find(s => s.name === u.sectionName);
+            return {
+                name: u.name,
+                username: u.username,
+                role: Role.Student,
+                sectionId: section?.id,
+            };
+        }).filter(u => u.sectionId); // Filter out users with invalid sections
+
+        setBulkAddUsers(newUsers);
+        setIsBulkModalOpen(true);
+        
+        if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+    };
+    
+    const handleConfirmBulkAdd = async () => {
+        const newUsersWithIds = bulkAddUsers.map(u => ({
+            ...u,
+            id: `user_${nanoid(5)}`,
+        })) as User[];
+        await onUpdateUsers([...users, ...newUsersWithIds]);
+        setIsBulkModalOpen(false);
+        setBulkAddUsers([]);
     };
 
 
@@ -109,28 +133,29 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, o
         <div className="space-y-6">
             <div className="flex justify-between items-center flex-wrap gap-4">
                 <PageTitle title="User Management" subtitle="View and manage all users in the system." />
-                <div className="flex gap-4">
-                    <Button onClick={openModalForNew}>Add New User</Button>
-                    <Button onClick={() => setIsResetModalOpen(true)} variant="danger">Reset Student Data</Button>
+                <div className="flex gap-4 flex-wrap">
+                    <Button onClick={openModalForNew}>Add Individual User</Button>
+                    <Button onClick={handleBulkUploadClick} variant="secondary">Bulk Add Students</Button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style={{ display: 'none' }} />
                 </div>
             </div>
             <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700/50">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Username</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Section(s)</th>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
+                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Username</th>
+                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
+                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Section(s)</th>
+                            <th scope="col" className="px-6 py-3 text-right text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         {users.map((user: User) => (
                             <tr key={user.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.username}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900 dark:text-white">{user.name}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700 dark:text-gray-300">{user.username}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700 dark:text-gray-300">
                                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                          user.role === 'Admin' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' :
                                          user.role === 'Teacher' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300' :
@@ -139,8 +164,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, o
                                         {user.role}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{getSectionDisplay(user)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700 dark:text-gray-300">{getSectionDisplay(user)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-base font-medium">
                                     <button onClick={() => openModalForEdit(user)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">Edit</button>
                                 </td>
                             </tr>
@@ -201,23 +226,37 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, o
                     </div>
                 </div>
             )}
-            {isResetModalOpen && (
-                <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex justify-center items-center p-4">
-                    <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md transform transition-all text-center">
-                        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Confirm Data Reset</h2>
-                        <p className="text-gray-600 dark:text-gray-300 mb-6">
-                            Are you sure you want to proceed? This will permanently delete all student accounts and all of their assessment attempts. This action cannot be undone.
-                        </p>
-                        <div className="flex justify-center gap-4 pt-4">
-                            <Button type="button" variant="secondary" onClick={() => setIsResetModalOpen(false)} disabled={isResetting}>
-                                Cancel
-                            </Button>
-                            <Button type="button" variant="danger" onClick={handleReset} disabled={isResetting}>
-                                {isResetting ? 'Resetting...' : 'Confirm Reset'}
-                            </Button>
+            {isBulkModalOpen && (
+                 <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex justify-center items-center p-4">
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-2xl transform transition-all">
+                        <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Confirm New Students</h2>
+                        <p className="text-gray-700 dark:text-gray-300 mb-4">The following {bulkAddUsers.length} students will be added to the system. Please review before confirming.</p>
+                        <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead className="bg-gray-50 dark:bg-gray-700/50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Username</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Section</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {bulkAddUsers.map((user, index) => (
+                                        <tr key={index}>
+                                            <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-200">{user.name}</td>
+                                            <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-200">{user.username}</td>
+                                            <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-200">{SECTIONS.find(s => s.id === user.sectionId)?.name}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex justify-end gap-4 pt-6">
+                            <Button type="button" variant="secondary" onClick={() => setIsBulkModalOpen(false)}>Cancel</Button>
+                            <Button type="button" onClick={handleConfirmBulkAdd}>Confirm and Add Students</Button>
                         </div>
                     </div>
-                </div>
+                 </div>
             )}
         </div>
     );
